@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+h#!/usr/bin/env python3
 """
 AcquiAxis AI - Multi-Agent Marketing System
 5 AI agents working together to generate M&A leads and drive revenue
@@ -168,7 +168,7 @@ Format your response as JSON:
         """Generate today's LinkedIn post"""
         try:
             response = client.messages.create(
-                model="claude-opus-4-20250805",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=1000,
                 system=LinkedInStrategist.get_system_prompt(),
                 messages=[
@@ -227,7 +227,7 @@ Format response as JSON:
         """Analyze and optimize ad campaigns"""
         try:
             response = client.messages.create(
-                model="claude-opus-4-20250805",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=1000,
                 system=GrowthHacker.get_system_prompt(),
                 messages=[
@@ -283,7 +283,7 @@ Format response as JSON:
         """Generate new content"""
         try:
             response = client.messages.create(
-                model="claude-opus-4-20250805",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=1500,
                 system=ContentCreator.get_system_prompt(),
                 messages=[
@@ -339,7 +339,7 @@ Format response as JSON:
         """Generate SEO optimization strategy"""
         try:
             response = client.messages.create(
-                model="claude-opus-4-20250805",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=1000,
                 system=SEOSpecialist.get_system_prompt(),
                 messages=[
@@ -394,7 +394,7 @@ Format response as JSON:
         """Generate TikTok growth strategy"""
         try:
             response = client.messages.create(
-                model="claude-opus-4-20250805",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=1000,
                 system=TikTokStrategist.get_system_prompt(),
                 messages=[
