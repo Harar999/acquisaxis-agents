@@ -68,38 +68,30 @@ client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 # ============================================================================
 
 def send_teams_notification(webhook_url: str, message: str, title: str = "AcquiAxis AI", color: str = "0078D4"):
-    """Send notification to Microsoft Teams channel"""
+    """Send notification to Microsoft Teams via Power Automate HTTP trigger"""
     if not webhook_url:
         logger.warning(f"Teams webhook URL not configured")
         return False
     
     try:
+        # Power Automate HTTP trigger format
         payload = {
-            "@type": "MessageCard",
-            "@context": "https://schema.org/extensions",
-            "summary": title,
-            "themeColor": color,
-            "sections": [
-                {
-                    "activityTitle": title,
-                    "activitySubtitle": f"AcquiAxis AI - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                    "text": message
-                }
-            ]
+            "title": title,
+            "message": message,
+            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "color": color
         }
         
-        response = requests.post(webhook_url, json=payload, timeout=10)
-        response.raise_for_status()
-        logger.info(f"Teams notification sent successfully")
-        return True
+        response = requests.post(webhook_url, json=payload, timeout=15)
+        if response.status_code in [200, 202]:
+            logger.info(f"Teams notification sent successfully to {title}")
+            return True
+        else:
+            logger.warning(f"Teams webhook status {response.status_code}: {response.text[:200]}")
+            return False
     except Exception as e:
         logger.error(f"Failed to send Teams notification: {str(e)}")
         return False
-
-# ============================================================================
-# AIRTABLE INTEGRATION
-# ============================================================================
-
 def log_to_airtable(record_type: str, data: Dict):
     """Log agent activities and leads to Airtable"""
     if not AIRTABLE_API_TOKEN or not AIRTABLE_BASE_ID:
