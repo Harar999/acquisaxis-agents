@@ -74,12 +74,36 @@ def send_teams_notification(webhook_url: str, message: str, title: str = "AcquiA
         return False
     
     try:
-        # Power Automate HTTP trigger format
+        # Power Automate's "Post card in a chat or channel" action expects
+        # the request body to be a valid Adaptive Card.
         payload = {
-            "title": title,
-            "message": message,
-            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "color": color
+            "type": "AdaptiveCard",
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "version": "1.4",
+            "msteams": {
+                "width": "Full"
+            },
+            "body": [
+                {
+                    "type": "TextBlock",
+                    "text": title,
+                    "weight": "Bolder",
+                    "size": "Medium",
+                    "wrap": True
+                },
+                {
+                    "type": "TextBlock",
+                    "text": message,
+                    "wrap": True
+                },
+                {
+                    "type": "TextBlock",
+                    "text": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    "isSubtle": True,
+                    "spacing": "Small",
+                    "wrap": True
+                }
+            ]
         }
         
         response = requests.post(webhook_url, json=payload, timeout=15)
