@@ -74,45 +74,11 @@ def send_teams_notification(webhook_url: str, message: str, title: str = "AcquiA
         return False
     
     try:
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        adaptive_card = {
-            "type": "AdaptiveCard",
-            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-            "version": "1.4",
-            "msteams": {
-                "width": "Full"
-            },
-            "body": [
-                {
-                    "type": "TextBlock",
-                    "text": title,
-                    "weight": "Bolder",
-                    "size": "Medium",
-                    "wrap": True
-                },
-                {
-                    "type": "TextBlock",
-                    "text": message,
-                    "wrap": True
-                },
-                {
-                    "type": "TextBlock",
-                    "text": timestamp,
-                    "isSubtle": True,
-                    "spacing": "Small",
-                    "wrap": True
-                }
-            ]
-        }
-        # Some Power Automate flows post the whole trigger body as the card.
-        # Others post a single dynamic field such as "message" or "card".
+        # Power Automate flow blueprint expects a simple message payload.
         payload = {
-            **adaptive_card,
             "title": title,
             "message": message,
-            "card": adaptive_card,
-            "cardJson": json.dumps(adaptive_card),
-            "timestamp": timestamp,
+            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "color": color
         }
         
