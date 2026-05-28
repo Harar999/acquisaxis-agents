@@ -109,8 +109,9 @@ def send_teams_notification(webhook_url: str, message: str, title: str = "AcquiA
         payload = {
             **adaptive_card,
             "title": title,
-            "message": json.dumps(adaptive_card),
-            "card": json.dumps(adaptive_card),
+            "message": message,
+            "card": adaptive_card,
+            "cardJson": json.dumps(adaptive_card),
             "timestamp": timestamp,
             "color": color
         }
