@@ -1,4 +1,4 @@
-h#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 AcquiAxis AI - Multi-Agent Marketing System
 5 AI agents working together to generate M&A leads and drive revenue
@@ -16,7 +16,7 @@ Deployment: Railway.app (no credit card needed)
 import os
 import json
 import logging
-import asyncio
+import time
 import requests
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
@@ -470,7 +470,7 @@ def schedule_agents():
     
     while True:
         schedule.run_pending()
-        asyncio.sleep(60)
+        time.sleep(60)
 
 # ============================================================================
 # FLASK ROUTES
