@@ -442,6 +442,13 @@ def run_daily_agents():
         
         logger.info("Running TikTok Strategist...")
         tiktok = TikTokStrategist.generate_tiktok_strategy()
+
+        send_teams_notification(
+            TEAMS_WEBHOOK_SALES,
+            "🎯 Sales intel updated\n\nDaily agent run completed and new marketing signals are ready for review.",
+            "Sales Intel",
+            "C50F1F"
+        )
         
         send_teams_notification(
             TEAMS_WEBHOOK_PERFORMANCE,
@@ -504,6 +511,34 @@ def manual_run():
     except Exception as e:
         logger.error(f"Manual run failed: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/test-webhooks', methods=['GET', 'POST'])
+def test_webhooks():
+    """Send a test notification to each configured Teams/Power Automate webhook"""
+    webhooks = {
+        "general": TEAMS_WEBHOOK_GENERAL,
+        "performance": TEAMS_WEBHOOK_PERFORMANCE,
+        "viral": TEAMS_WEBHOOK_VIRAL,
+        "sales": TEAMS_WEBHOOK_SALES,
+    }
+
+    results = {}
+    for name, webhook_url in webhooks.items():
+        results[name] = {
+            "configured": bool(webhook_url),
+            "sent": send_teams_notification(
+                webhook_url,
+                f"Test notification from AcquiAxis AI for the {name} webhook.",
+                f"Webhook Test - {name.title()}",
+                "0078D4"
+            ) if webhook_url else False
+        }
+
+    return jsonify({
+        "status": "complete",
+        "timestamp": datetime.now().isoformat(),
+        "results": results
+    }), 200
 
 @app.route('/agents/linkedin', methods=['POST'])
 def trigger_linkedin():
