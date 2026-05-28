@@ -17,6 +17,7 @@ import os
 import json
 import logging
 import time
+import hashlib
 import requests
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
@@ -538,6 +539,29 @@ def test_webhooks():
         "status": "complete",
         "timestamp": datetime.now().isoformat(),
         "results": results
+    }), 200
+
+@app.route('/debug-webhooks', methods=['GET'])
+def debug_webhooks():
+    """Show safe webhook configuration fingerprints without exposing secret URLs"""
+    webhooks = {
+        "general": TEAMS_WEBHOOK_GENERAL,
+        "performance": TEAMS_WEBHOOK_PERFORMANCE,
+        "viral": TEAMS_WEBHOOK_VIRAL,
+        "sales": TEAMS_WEBHOOK_SALES,
+    }
+
+    return jsonify({
+        "status": "complete",
+        "timestamp": datetime.now().isoformat(),
+        "webhooks": {
+            name: {
+                "configured": bool(url),
+                "fingerprint": hashlib.sha256(url.encode()).hexdigest()[:12] if url else None,
+                "length": len(url) if url else 0
+            }
+            for name, url in webhooks.items()
+        }
     }), 200
 
 @app.route('/agents/linkedin', methods=['POST'])
