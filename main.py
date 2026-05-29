@@ -11,13 +11,13 @@ Agents:
 5. TikTok Strategist - Viral content, audience growth, brand awareness
 
 Deployment: Railway.app (no credit card needed)
+Notifications: Slack (instead of Teams)
 """
 
 import os
 import json
 import logging
-import time
-import hashlib
+import asyncio
 import requests
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
@@ -65,34 +65,50 @@ app = Flask(__name__)
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 # ============================================================================
-# TEAMS NOTIFICATIONS
+# SLACK NOTIFICATIONS
 # ============================================================================
 
-def send_teams_notification(webhook_url: str, message: str, title: str = "AcquiAxis AI", color: str = "0078D4"):
-    """Send notification to Microsoft Teams via Power Automate HTTP trigger"""
+def send_slack_notification(webhook_url: str, message: str, title: str = "AcquiAxis AI"):
+    """Send notification to Slack channel"""
     if not webhook_url:
-        logger.warning(f"Teams webhook URL not configured")
+        logger.warning(f"Slack webhook URL not configured")
         return False
     
     try:
-        # Power Automate flow blueprint expects a simple message payload.
         payload = {
-            "title": title,
-            "message": message,
-            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "color": color
+            "text": f"*{title}*",
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*{title}*\n{message}"
+                    }
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"_AcquiAxis AI • {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC_"
+                        }
+                    ]
+                }
+            ]
         }
         
-        response = requests.post(webhook_url, json=payload, timeout=15)
-        if response.status_code in [200, 202]:
-            logger.info(f"Teams notification sent successfully to {title}")
-            return True
-        else:
-            logger.warning(f"Teams webhook status {response.status_code}: {response.text[:200]}")
-            return False
+        response = requests.post(webhook_url, json=payload, timeout=10)
+        response.raise_for_status()
+        logger.info(f"Slack notification sent successfully")
+        return True
     except Exception as e:
-        logger.error(f"Failed to send Teams notification: {str(e)}")
+        logger.error(f"Failed to send Slack notification: {str(e)}")
         return False
+
+# ============================================================================
+# AIRTABLE INTEGRATION
+# ============================================================================
+
 def log_to_airtable(record_type: str, data: Dict):
     """Log agent activities and leads to Airtable"""
     if not AIRTABLE_API_TOKEN or not AIRTABLE_BASE_ID:
@@ -169,7 +185,7 @@ Format your response as JSON:
         """Generate today's LinkedIn post"""
         try:
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-opus-4-20250805",
                 max_tokens=1000,
                 system=LinkedInStrategist.get_system_prompt(),
                 messages=[
@@ -188,11 +204,10 @@ Format your response as JSON:
                 "Status": "Published"
             })
             
-            send_teams_notification(
-                TEAMS_WEBHOOK_GENERAL,
-                f"📱 LinkedIn post published!\n\n{post_data.get('post_text', '')[:200]}...",
-                "LinkedIn Strategist",
-                "0078D4"
+            send_slack_notification(
+                SLACK_WEBHOOK_GENERAL,
+                f"📱 *LinkedIn post published!*\n\n{post_data.get('post_text', '')[:200]}...",
+                "LinkedIn Strategist"
             )
             
             logger.info("LinkedIn post created successfully")
@@ -228,7 +243,7 @@ Format response as JSON:
         """Analyze and optimize ad campaigns"""
         try:
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-opus-4-20250805",
                 max_tokens=1000,
                 system=GrowthHacker.get_system_prompt(),
                 messages=[
@@ -247,11 +262,10 @@ Format response as JSON:
                 "Status": "Optimized"
             })
             
-            send_teams_notification(
-                TEAMS_WEBHOOK_PERFORMANCE,
-                f"📊 Growth Analysis Complete\n\nEstimated ROAS: {analysis.get('estimated_roas', 2.5)}x",
-                "Growth Hacker",
-                "00B050"
+            send_slack_notification(
+                SLACK_WEBHOOK_PERFORMANCE,
+                f"📊 *Growth Analysis Complete*\n\nEstimated ROAS: {analysis.get('estimated_roas', 2.5)}x\n\nOptimizations: {', '.join(analysis.get('recommended_optimizations', [])[:3])}",
+                "Growth Hacker"
             )
             
             return analysis
@@ -284,7 +298,7 @@ Format response as JSON:
         """Generate new content"""
         try:
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-opus-4-20250805",
                 max_tokens=1500,
                 system=ContentCreator.get_system_prompt(),
                 messages=[
@@ -303,11 +317,10 @@ Format response as JSON:
                 "Status": "Published"
             })
             
-            send_teams_notification(
-                TEAMS_WEBHOOK_GENERAL,
-                f"✍️ New Content Published\n\nTitle: {content.get('title', '')}",
-                "Content Creator",
-                "7030A0"
+            send_slack_notification(
+                SLACK_WEBHOOK_GENERAL,
+                f"✍️ *New Content Published*\n\nTitle: {content.get('title', '')}",
+                "Content Creator"
             )
             
             return content
@@ -340,7 +353,7 @@ Format response as JSON:
         """Generate SEO optimization strategy"""
         try:
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-opus-4-20250805",
                 max_tokens=1000,
                 system=SEOSpecialist.get_system_prompt(),
                 messages=[
@@ -358,11 +371,10 @@ Format response as JSON:
                 "Estimated_Traffic_Increase": strategy.get("estimated_traffic_increase", "")
             })
             
-            send_teams_notification(
-                TEAMS_WEBHOOK_PERFORMANCE,
-                f"🔍 SEO Strategy Updated\n\nTarget Keywords: {', '.join(strategy.get('target_keywords', [])[:3])}",
-                "SEO Specialist",
-                "FF6B00"
+            send_slack_notification(
+                SLACK_WEBHOOK_PERFORMANCE,
+                f"🔍 *SEO Strategy Updated*\n\nTarget Keywords: {', '.join(strategy.get('target_keywords', [])[:3])}\n\nEstimated Traffic Increase: {strategy.get('estimated_traffic_increase', '')}",
+                "SEO Specialist"
             )
             
             return strategy
@@ -395,7 +407,7 @@ Format response as JSON:
         """Generate TikTok growth strategy"""
         try:
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-opus-4-20250805",
                 max_tokens=1000,
                 system=TikTokStrategist.get_system_prompt(),
                 messages=[
@@ -408,11 +420,10 @@ Format response as JSON:
             
             strategy = json.loads(response.content[0].text)
             
-            send_teams_notification(
-                TEAMS_WEBHOOK_VIRAL,
-                f"🎬 TikTok Strategy Generated\n\nVideo Ideas: {', '.join(strategy.get('video_ideas', [])[:2])}",
-                "TikTok Strategist",
-                "FF0050"
+            send_slack_notification(
+                SLACK_WEBHOOK_VIRAL,
+                f"🎬 *TikTok Strategy Generated*\n\nVideo Ideas: {', '.join(strategy.get('video_ideas', [])[:2])}\n\nGrowth Projection: {strategy.get('growth_projection', '')}",
+                "TikTok Strategist"
             )
             
             return strategy
@@ -443,30 +454,21 @@ def run_daily_agents():
         
         logger.info("Running TikTok Strategist...")
         tiktok = TikTokStrategist.generate_tiktok_strategy()
-
-        send_teams_notification(
-            TEAMS_WEBHOOK_SALES,
-            "🎯 Sales intel updated\n\nDaily agent run completed and new marketing signals are ready for review.",
-            "Sales Intel",
-            "C50F1F"
-        )
         
-        send_teams_notification(
-            TEAMS_WEBHOOK_PERFORMANCE,
-            "✅ Daily agent execution complete!\n\n📱 LinkedIn post created\n✍️ New content generated\n📊 Performance analyzed\n🔍 SEO optimized\n🎬 TikTok strategy updated",
-            "AcquiAxis Daily Run",
-            "107C10"
+        send_slack_notification(
+            SLACK_WEBHOOK_PERFORMANCE,
+            "✅ *Daily agent execution complete!*\n\n📱 LinkedIn post created\n✍️ New content generated\n📊 Performance analyzed\n🔍 SEO optimized\n🎬 TikTok strategy updated",
+            "AcquiAxis Daily Run"
         )
         
         logger.info("Daily agent execution completed successfully")
         return True
     except Exception as e:
         logger.error(f"Daily agent execution failed: {str(e)}")
-        send_teams_notification(
-            TEAMS_WEBHOOK_GENERAL,
-            f"❌ Daily execution failed: {str(e)}",
-            "AcquiAxis Error",
-            "FF0000"
+        send_slack_notification(
+            SLACK_WEBHOOK_GENERAL,
+            f"❌ *Daily execution failed*\n\n{str(e)}",
+            "AcquiAxis Error"
         )
         return False
 
@@ -478,7 +480,7 @@ def schedule_agents():
     
     while True:
         schedule.run_pending()
-        time.sleep(60)
+        asyncio.sleep(60)
 
 # ============================================================================
 # FLASK ROUTES
@@ -500,9 +502,9 @@ def health_check():
         }
     }), 200
 
-@app.route('/run-agents', methods=['POST'])
+@app.route('/run-agents', methods=['POST', 'GET'])
 def manual_run():
-    """Manually trigger agent execution"""
+    """Manually trigger agent execution (accept GET for browser testing)"""
     try:
         success = run_daily_agents()
         return jsonify({
@@ -512,57 +514,6 @@ def manual_run():
     except Exception as e:
         logger.error(f"Manual run failed: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route('/test-webhooks', methods=['GET', 'POST'])
-def test_webhooks():
-    """Send a test notification to each configured Teams/Power Automate webhook"""
-    webhooks = {
-        "general": TEAMS_WEBHOOK_GENERAL,
-        "performance": TEAMS_WEBHOOK_PERFORMANCE,
-        "viral": TEAMS_WEBHOOK_VIRAL,
-        "sales": TEAMS_WEBHOOK_SALES,
-    }
-
-    results = {}
-    for name, webhook_url in webhooks.items():
-        results[name] = {
-            "configured": bool(webhook_url),
-            "sent": send_teams_notification(
-                webhook_url,
-                f"Test notification from AcquiAxis AI for the {name} webhook.",
-                f"Webhook Test - {name.title()}",
-                "0078D4"
-            ) if webhook_url else False
-        }
-
-    return jsonify({
-        "status": "complete",
-        "timestamp": datetime.now().isoformat(),
-        "results": results
-    }), 200
-
-@app.route('/debug-webhooks', methods=['GET'])
-def debug_webhooks():
-    """Show safe webhook configuration fingerprints without exposing secret URLs"""
-    webhooks = {
-        "general": TEAMS_WEBHOOK_GENERAL,
-        "performance": TEAMS_WEBHOOK_PERFORMANCE,
-        "viral": TEAMS_WEBHOOK_VIRAL,
-        "sales": TEAMS_WEBHOOK_SALES,
-    }
-
-    return jsonify({
-        "status": "complete",
-        "timestamp": datetime.now().isoformat(),
-        "webhooks": {
-            name: {
-                "configured": bool(url),
-                "fingerprint": hashlib.sha256(url.encode()).hexdigest()[:12] if url else None,
-                "length": len(url) if url else 0
-            }
-            for name, url in webhooks.items()
-        }
-    }), 200
 
 @app.route('/agents/linkedin', methods=['POST'])
 def trigger_linkedin():
@@ -619,12 +570,17 @@ def startup_check():
     logger.info("ACQUISAXIS AI - STARTUP CHECK")
     logger.info("=" * 80)
     
+    slack_general_ok = bool(SLACK_WEBHOOK_GENERAL) if SLACK_WEBHOOK_GENERAL else False
+    slack_performance_ok = bool(SLACK_WEBHOOK_PERFORMANCE) if SLACK_WEBHOOK_PERFORMANCE else False
+    slack_viral_ok = bool(SLACK_WEBHOOK_VIRAL) if SLACK_WEBHOOK_VIRAL else False
+    slack_sales_ok = bool(SLACK_WEBHOOK_SALES) if SLACK_WEBHOOK_SALES else False
+    
     checks = {
         "Anthropic API": bool(ANTHROPIC_API_KEY),
-        "Teams General": bool(TEAMS_WEBHOOK_GENERAL),
-        "Teams Performance": bool(TEAMS_WEBHOOK_PERFORMANCE),
-        "Teams Viral": bool(TEAMS_WEBHOOK_VIRAL),
-        "Teams Sales": bool(TEAMS_WEBHOOK_SALES),
+        "Slack General": slack_general_ok,
+        "Slack Performance": slack_performance_ok,
+        "Slack Viral": slack_viral_ok,
+        "Slack Sales": slack_sales_ok,
         "LinkedIn API": bool(LINKEDIN_API_TOKEN),
         "LinkedIn Company": bool(LINKEDIN_COMPANY_ID),
         "Airtable API": bool(AIRTABLE_API_TOKEN),
@@ -642,11 +598,10 @@ def startup_check():
     if all_good:
         logger.info("✅ ALL SYSTEMS READY - STARTING AGENTS")
         
-        send_teams_notification(
-            TEAMS_WEBHOOK_GENERAL,
-            "🚀 AcquiAxis AI agents are LIVE!\n\n✅ LinkedIn Strategist\n✅ Growth Hacker\n✅ Content Creator\n✅ SEO Specialist\n✅ TikTok Strategist\n\nDaily operations beginning now...",
-            "AcquiAxis AI Launched",
-            "107C10"
+        send_slack_notification(
+            SLACK_WEBHOOK_GENERAL,
+            "🚀 *AcquiAxis AI agents are LIVE!*\n\n✅ LinkedIn Strategist\n✅ Growth Hacker\n✅ Content Creator\n✅ SEO Specialist\n✅ TikTok Strategist\n\nDaily operations beginning now...",
+            "AcquiAxis AI Launched"
         )
     else:
         logger.warning("⚠️ Some systems not configured - running in limited mode")
