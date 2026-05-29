@@ -58,6 +58,32 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ============================================================================
+# JSON EXTRACTION HELPER
+# ============================================================================
+
+def extract_json(text: str):
+    """Extract JSON from Claude's response, handling markdown code blocks"""
+    import re
+    
+    # Remove markdown code fences if present
+    text = text.strip()
+    
+    # Try to find JSON wrapped in ```json ... ``` or ``` ... ```
+    json_match = re.search(r'\`\`\`(?:json)?\s*(\{.*?\})\s*\`\`\`', text, re.DOTALL)
+    if json_match:
+        text = json_match.group(1)
+    else:
+        # Try to find the first { to last }
+        start = text.find('{')
+        end = text.rfind('}')
+        if start != -1 and end != -1:
+            text = text[start:end+1]
+    
+    return json.loads(text)
+
+
+
+# ============================================================================
 # FLASK APP SETUP
 # ============================================================================
 
@@ -196,7 +222,7 @@ Format your response as JSON:
                 ]
             )
             
-            post_data = json.loads(response.content[0].text)
+            post_data = extract_json(response.content[0].text)
             
             log_to_airtable("linkedin_post", {
                 "Title": post_data.get("post_text", "")[:50],
@@ -254,7 +280,7 @@ Format response as JSON:
                 ]
             )
             
-            analysis = json.loads(response.content[0].text)
+            analysis = extract_json(response.content[0].text)
             
             log_to_airtable("ad_campaign", {
                 "Campaign": "Growth Optimization",
@@ -309,7 +335,7 @@ Format response as JSON:
                 ]
             )
             
-            content = json.loads(response.content[0].text)
+            content = extract_json(response.content[0].text)
             
             log_to_airtable("content", {
                 "Title": content.get("title", ""),
@@ -364,7 +390,7 @@ Format response as JSON:
                 ]
             )
             
-            strategy = json.loads(response.content[0].text)
+            strategy = extract_json(response.content[0].text)
             
             log_to_airtable("seo_update", {
                 "Keywords": ", ".join(strategy.get("target_keywords", [])[:5]),
@@ -418,7 +444,7 @@ Format response as JSON:
                 ]
             )
             
-            strategy = json.loads(response.content[0].text)
+            strategy = extract_json(response.content[0].text)
             
             send_slack_notification(
                 SLACK_WEBHOOK_VIRAL,
@@ -570,6 +596,7 @@ def startup_check():
     logger.info("ACQUISAXIS AI - STARTUP CHECK")
     logger.info("=" * 80)
     
+    # Check if variables are configured
     slack_general_ok = bool(SLACK_WEBHOOK_GENERAL) if SLACK_WEBHOOK_GENERAL else False
     slack_performance_ok = bool(SLACK_WEBHOOK_PERFORMANCE) if SLACK_WEBHOOK_PERFORMANCE else False
     slack_viral_ok = bool(SLACK_WEBHOOK_VIRAL) if SLACK_WEBHOOK_VIRAL else False
