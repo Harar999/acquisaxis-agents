@@ -185,7 +185,7 @@ Format your response as JSON:
         """Generate today's LinkedIn post"""
         try:
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-6",
                 max_tokens=1000,
                 system=LinkedInStrategist.get_system_prompt(),
                 messages=[
@@ -243,7 +243,7 @@ Format response as JSON:
         """Analyze and optimize ad campaigns"""
         try:
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-6",
                 max_tokens=1000,
                 system=GrowthHacker.get_system_prompt(),
                 messages=[
@@ -298,7 +298,7 @@ Format response as JSON:
         """Generate new content"""
         try:
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-6",
                 max_tokens=1500,
                 system=ContentCreator.get_system_prompt(),
                 messages=[
@@ -353,7 +353,7 @@ Format response as JSON:
         """Generate SEO optimization strategy"""
         try:
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-6",
                 max_tokens=1000,
                 system=SEOSpecialist.get_system_prompt(),
                 messages=[
@@ -407,7 +407,7 @@ Format response as JSON:
         """Generate TikTok growth strategy"""
         try:
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-6",
                 max_tokens=1000,
                 system=TikTokStrategist.get_system_prompt(),
                 messages=[
