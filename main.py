@@ -62,23 +62,24 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 def extract_json(text: str):
-    """Extract JSON from Claude's response, handling markdown code blocks"""
+    """Extract JSON from Claude's response, robust to markdown, preamble, and prefill."""
     import re
-    
-    # Remove markdown code fences if present
+    if text is None:
+        raise ValueError("Empty response from model")
     text = text.strip()
-    
-    # Try to find JSON wrapped in ```json ... ``` or ``` ... ```
-    json_match = re.search(r'\`\`\`(?:json)?\s*(\{.*?\})\s*\`\`\`', text, re.DOTALL)
-    if json_match:
-        text = json_match.group(1)
-    else:
-        # Try to find the first { to last }
-        start = text.find('{')
-        end = text.rfind('}')
-        if start != -1 and end != -1:
-            text = text[start:end+1]
-    
+
+    # Strip markdown code fences if present
+    if "```" in text:
+        m = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
+        if m:
+            text = m.group(1).strip()
+
+    # Slice from first { to last } (the outermost object)
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        text = text[start:end + 1]
+
     return json.loads(text)
 
 
@@ -212,17 +213,18 @@ Format your response as JSON:
         try:
             response = client.messages.create(
                 model="claude-sonnet-4-6",
-                max_tokens=1000,
+                max_tokens=2000,
                 system=LinkedInStrategist.get_system_prompt(),
                 messages=[
                     {
                         "role": "user",
                         "content": "Create a compelling LinkedIn post about M&A deal velocity. Include data and actionable insights for PE professionals."
-                    }
+                    },
+                    {"role": "assistant", "content": "{"}
                 ]
             )
             
-            post_data = extract_json(response.content[0].text)
+            post_data = extract_json("{" + response.content[0].text)
             
             log_to_airtable("linkedin_post", {
                 "Title": post_data.get("post_text", "")[:50],
@@ -270,17 +272,18 @@ Format response as JSON:
         try:
             response = client.messages.create(
                 model="claude-sonnet-4-6",
-                max_tokens=1000,
+                max_tokens=2000,
                 system=GrowthHacker.get_system_prompt(),
                 messages=[
                     {
                         "role": "user",
                         "content": "Analyze LinkedIn and Google Ads performance for AcquiAxis AI targeting PE professionals. What optimizations would increase ROAS?"
-                    }
+                    },
+                    {"role": "assistant", "content": "{"}
                 ]
             )
             
-            analysis = extract_json(response.content[0].text)
+            analysis = extract_json("{" + response.content[0].text)
             
             log_to_airtable("ad_campaign", {
                 "Campaign": "Growth Optimization",
@@ -325,17 +328,18 @@ Format response as JSON:
         try:
             response = client.messages.create(
                 model="claude-sonnet-4-6",
-                max_tokens=1500,
+                max_tokens=2000,
                 system=ContentCreator.get_system_prompt(),
                 messages=[
                     {
                         "role": "user",
                         "content": "Create a blog post about 'How to Close M&A Deals 3x Faster Using AI' for PE professionals."
-                    }
+                    },
+                    {"role": "assistant", "content": "{"}
                 ]
             )
             
-            content = extract_json(response.content[0].text)
+            content = extract_json("{" + response.content[0].text)
             
             log_to_airtable("content", {
                 "Title": content.get("title", ""),
@@ -380,17 +384,18 @@ Format response as JSON:
         try:
             response = client.messages.create(
                 model="claude-sonnet-4-6",
-                max_tokens=1000,
+                max_tokens=2000,
                 system=SEOSpecialist.get_system_prompt(),
                 messages=[
                     {
                         "role": "user",
                         "content": "Create an SEO strategy for AcquiAxis AI targeting M&A software keywords."
-                    }
+                    },
+                    {"role": "assistant", "content": "{"}
                 ]
             )
             
-            strategy = extract_json(response.content[0].text)
+            strategy = extract_json("{" + response.content[0].text)
             
             log_to_airtable("seo_update", {
                 "Keywords": ", ".join(strategy.get("target_keywords", [])[:5]),
@@ -434,17 +439,18 @@ Format response as JSON:
         try:
             response = client.messages.create(
                 model="claude-sonnet-4-6",
-                max_tokens=1000,
+                max_tokens=2000,
                 system=TikTokStrategist.get_system_prompt(),
                 messages=[
                     {
                         "role": "user",
                         "content": "Create a TikTok strategy for AcquiAxis AI targeting founders and operators. What viral content should we create?"
-                    }
+                    },
+                    {"role": "assistant", "content": "{"}
                 ]
             )
             
-            strategy = extract_json(response.content[0].text)
+            strategy = extract_json("{" + response.content[0].text)
             
             send_slack_notification(
                 SLACK_WEBHOOK_VIRAL,
