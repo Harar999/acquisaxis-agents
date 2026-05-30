@@ -26,4 +26,4 @@ EXPOSE 8080
 ENV PYTHONUNBUFFERED=1
 
 # Run the application — bind to Railway's $PORT (fallback 8080)
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile - main:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 1 --threads 2 --timeout 120 --access-logfile - --error-logfile - main:app"]
