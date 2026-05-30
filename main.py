@@ -1,4 +1,3 @@
-# redeploy
 #!/usr/bin/env python3
 """
 AcquiAxis AI - Multi-Agent Marketing System
@@ -85,19 +84,18 @@ def extract_json(text: str):
 
 
 def call_model_text(system_prompt: str, user_content: str, max_tokens: int = 4096):
-    """Call Claude and return the raw text. Uses prefill to encourage JSON."""
+    """Call Claude and return the raw text. Instructs JSON-only output."""
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=max_tokens,
-        system=system_prompt,
+        system=system_prompt + "\n\nIMPORTANT: Respond with ONLY the raw JSON object. No markdown code fences, no explanation, no text before or after.",
         messages=[
-            {"role": "user", "content": user_content},
-            {"role": "assistant", "content": "{"}
+            {"role": "user", "content": user_content}
         ]
     )
-    # Concatenate all text blocks, prepend the prefilled brace
+    # Concatenate all text blocks
     text = "".join(getattr(block, "text", "") for block in response.content)
-    return "{" + text
+    return text
 
 
 def safe_parse(raw_text: str):
