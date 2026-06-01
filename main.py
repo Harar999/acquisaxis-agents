@@ -121,37 +121,28 @@ client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 # ============================================================================
 
 def send_slack_notification(webhook_url: str, message: str, title: str = "AcquiAxis AI"):
-    """Send notification to Slack channel"""
+    """Send notification to Slack channel. Shows full content by chunking long text
+    into multiple blocks (Slack caps each section block at 3000 characters)."""
     if not webhook_url:
-        logger.warning(f"Slack webhook URL not configured")
+        logger.warning("Slack webhook URL not configured")
         return False
-    
+
     try:
-        payload = {
-            "text": f"*{title}*",
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*{title}*\n{message}"
-                    }
-                },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": f"_AcquiAxis AI • {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC_"
-                        }
-                    ]
-                }
+        full_text = f"*{title}*\n{message}"
+        # Chunk into <=2900 char pieces so nothing gets cut off and Slack won't reject it
+        chunks = [full_text[i:i + 2900] for i in range(0, len(full_text), 2900)] or [full_text]
+        blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": c}} for c in chunks[:48]]
+        blocks.append({
+            "type": "context",
+            "elements": [
+                {"type": "mrkdwn", "text": f"_AcquiAxis AI • {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC_"}
             ]
-        }
-        
+        })
+        payload = {"text": f"*{title}*", "blocks": blocks}
+
         response = requests.post(webhook_url, json=payload, timeout=10)
         response.raise_for_status()
-        logger.info(f"Slack notification sent successfully")
+        logger.info("Slack notification sent successfully")
         return True
     except Exception as e:
         logger.error(f"Failed to send Slack notification: {str(e)}")
@@ -251,7 +242,7 @@ Format your response as JSON:
 
             send_slack_notification(
                 SLACK_WEBHOOK_GENERAL,
-                f"📱 *LinkedIn post published!*\n\n{post_text[:400]}",
+                f"📱 *LinkedIn post published — copy/paste ready:*\n\n{post_text}",
                 "LinkedIn Strategist"
             )
 
@@ -297,7 +288,7 @@ Format response as JSON:
             if opts:
                 body = f"Estimated ROAS: {roas}x\n\nOptimizations: {', '.join(opts[:3])}"
             else:
-                body = raw.lstrip("{").strip()[:400]
+                body = raw.lstrip("{").strip()
 
             log_to_airtable("ad_campaign", {
                 "Campaign": "Growth Optimization",
@@ -347,6 +338,7 @@ Format response as JSON:
             )
             data = safe_parse(raw)
             title = data.get("title") or "New M&A Blog Post"
+            body = data.get("body") or data.get("content") or raw.lstrip("{").strip()
 
             log_to_airtable("content", {
                 "Title": title,
@@ -356,7 +348,7 @@ Format response as JSON:
 
             send_slack_notification(
                 SLACK_WEBHOOK_GENERAL,
-                f"✍️ *New Content Published*\n\nTitle: {title}",
+                f"✍️ *New Content Published*\n\n*Title:* {title}\n\n{body}",
                 "Content Creator"
             )
 
@@ -400,7 +392,7 @@ Format response as JSON:
             if keywords:
                 body = f"Target Keywords: {', '.join(keywords[:3])}\n\nEstimated Traffic Increase: {traffic}"
             else:
-                body = raw.lstrip("{").strip()[:400]
+                body = raw.lstrip("{").strip()
 
             log_to_airtable("seo_update", {
                 "Keywords": ", ".join(keywords[:5]),
@@ -453,7 +445,7 @@ Format response as JSON:
             if ideas:
                 body = f"Video Ideas: {', '.join(ideas[:2])}\n\nGrowth Projection: {growth}"
             else:
-                body = raw.lstrip("{").strip()[:400]
+                body = raw.lstrip("{").strip()
 
             send_slack_notification(
                 SLACK_WEBHOOK_VIRAL,
