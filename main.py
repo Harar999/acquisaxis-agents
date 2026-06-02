@@ -25,6 +25,7 @@ import anthropic
 import schedule
 from flask import Flask, request, jsonify
 import threading
+import random
 
 # ============================================================================
 # CONFIGURATION
@@ -56,6 +57,67 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# ============================================================================
+# ROTATING TOPICS (so agents produce fresh content each run)
+# ============================================================================
+
+LINKEDIN_TOPICS = [
+    "deal velocity and closing acquisitions faster",
+    "due diligence red flags first-time searchers miss",
+    "seller financing structures that protect the buyer",
+    "using SBA 7(a) loans to fund a business acquisition",
+    "spotting inflated EBITDA add-backs in a CIM",
+    "customer concentration risk in small businesses",
+    "negotiating LOI terms that favor the buyer",
+    "the first 90 days after closing an acquisition",
+    "working capital adjustments at close",
+    "structuring earnouts fairly for both sides",
+    "finding off-market acquisition deals",
+    "what a quality of earnings analysis really tells you",
+    "valuation multiples for small businesses by industry",
+    "building a repeatable acquisition deal pipeline",
+    "the most expensive mistakes first-time acquirers make",
+    "evaluating a seller transition and handover period",
+    "structuring debt so a deal still cash-flows",
+    "reading a CIM critically instead of optimistically",
+    "retaining the management team after an acquisition",
+    "choosing the right industry as an acquisition entrepreneur",
+]
+
+CONTENT_TOPICS = [
+    "How to Close M&A Deals 3x Faster Using AI",
+    "The Searcher's Guide to Quality of Earnings",
+    "7 Due Diligence Red Flags That Kill Deals",
+    "How to Structure Seller Financing the Right Way",
+    "Reading a CIM: What Sellers Don't Want You to Notice",
+    "The First 90 Days After You Buy a Business",
+    "SBA Loans for Acquisitions: A Practical Walkthrough",
+    "How to Build an Acquisition Pipeline From Scratch",
+    "Valuation Multiples Explained for Small Business Buyers",
+    "Working Capital Pegs and Why They Matter at Close",
+]
+
+SEO_TOPICS = [
+    "M&A deal analysis software",
+    "business acquisition due diligence tools",
+    "SBA acquisition loan calculator",
+    "quality of earnings software for searchers",
+    "LOI and deal structuring tools",
+    "small business valuation software",
+    "search fund deal analysis",
+    "acquisition entrepreneur software",
+]
+
+TIKTOK_TOPICS = [
+    "first-time business buyers and acquisition entrepreneurs",
+    "people leaving corporate to buy a business",
+    "search fund hopefuls learning deal analysis",
+    "small business owners thinking about selling",
+    "aspiring acquisition entrepreneurs on a budget",
+]
+
+
 
 # ============================================================================
 # JSON EXTRACTION HELPER
@@ -227,9 +289,13 @@ Format your response as JSON:
     def create_daily_post():
         """Generate today's LinkedIn post"""
         try:
+            topic = random.choice(LINKEDIN_TOPICS)
+            today = datetime.now().strftime("%B %d, %Y")
             raw = call_model_text(
                 LinkedInStrategist.get_system_prompt(),
-                "Create a compelling LinkedIn post about M&A deal velocity. Include data and actionable insights for PE professionals."
+                f"Today is {today}. Write a fresh, original LinkedIn post about: {topic}. "
+                f"Make it specific with a concrete insight or data point — not generic advice. "
+                f"Do not reuse openings you would typically default to; vary the hook."
             )
             data = safe_parse(raw)
             post_text = data.get("post_text") or raw.lstrip("{").strip()
@@ -278,9 +344,10 @@ Format response as JSON:
     def analyze_performance():
         """Analyze and optimize ad campaigns"""
         try:
+            today = datetime.now().strftime("%B %d, %Y")
             raw = call_model_text(
                 GrowthHacker.get_system_prompt(),
-                "Analyze LinkedIn and Google Ads performance for AcquiAxis AI targeting PE professionals. What optimizations would increase ROAS?"
+                f"Today is {today}. Analyze ad performance for AcquiAxis AI targeting acquisition entrepreneurs and searchers. Give fresh, specific optimizations to increase ROAS today."
             )
             data = safe_parse(raw)
             roas = data.get("estimated_roas", 2.5)
@@ -332,9 +399,11 @@ Format response as JSON:
     def create_content():
         """Generate new content"""
         try:
+            topic = random.choice(CONTENT_TOPICS)
+            today = datetime.now().strftime("%B %d, %Y")
             raw = call_model_text(
                 ContentCreator.get_system_prompt(),
-                "Create a short blog post (max 300 words) about 'How to Close M&A Deals 3x Faster Using AI' for PE professionals. Keep the body concise."
+                f"Today is {today}. Write a short blog post (max 300 words) titled '{topic}' for acquisition entrepreneurs and searchers. Keep the body concise and specific."
             )
             data = safe_parse(raw)
             title = data.get("title") or "New M&A Blog Post"
@@ -382,9 +451,10 @@ Format response as JSON:
     def optimize_seo():
         """Generate SEO optimization strategy"""
         try:
+            focus = random.choice(SEO_TOPICS)
             raw = call_model_text(
                 SEOSpecialist.get_system_prompt(),
-                "Create a concise SEO strategy for AcquiAxis AI targeting M&A software keywords. List up to 5 target keywords. Keep it brief."
+                f"Create a concise SEO strategy for AcquiAxis AI with a focus on '{focus}'. List up to 5 target keywords related to it. Keep it brief."
             )
             data = safe_parse(raw)
             keywords = data.get("target_keywords", [])
@@ -435,9 +505,10 @@ Format response as JSON:
     def generate_tiktok_strategy():
         """Generate TikTok growth strategy"""
         try:
+            audience = random.choice(TIKTOK_TOPICS)
             raw = call_model_text(
                 TikTokStrategist.get_system_prompt(),
-                "Create a concise TikTok strategy for AcquiAxis AI targeting founders and operators. List a few viral video ideas. Keep it brief."
+                f"Create a concise TikTok strategy for AcquiAxis AI targeting {audience}. List a few fresh, specific viral video ideas. Keep it brief."
             )
             data = safe_parse(raw)
             ideas = data.get("video_ideas", [])
