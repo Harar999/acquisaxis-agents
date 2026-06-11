@@ -142,7 +142,7 @@ def extract_json(text: str):
     if start != -1 and end != -1 and end > start:
         text = text[start:end + 1]
 
-    return json.loads(text)
+    return json.loads(text, strict=False)
 
 
 def call_model_text(system_prompt: str, user_content: str, max_tokens: int = 4096):
@@ -167,6 +167,18 @@ def safe_parse(raw_text: str):
     except Exception as e:
         logger.warning(f"JSON parse failed, using raw text fallback: {str(e)}")
         return {}
+
+
+def clean_text(s: str) -> str:
+    """Convert escaped sequences (\\n, \\t, escaped quotes) into real characters
+    so Slack content is copy/paste ready even via the raw-text fallback."""
+    if not s:
+        return s
+    return (s.replace("\\n", "\n")
+             .replace("\\t", "\t")
+             .replace('\\"', '"')
+             .strip())
+
 
 
 
@@ -298,7 +310,7 @@ Format your response as JSON:
                 f"Do not reuse openings you would typically default to; vary the hook."
             )
             data = safe_parse(raw)
-            post_text = data.get("post_text") or raw.lstrip("{").strip()
+            post_text = clean_text(data.get("post_text") or raw.lstrip("{").strip())
 
             log_to_airtable("linkedin_post", {
                 "Title": post_text[:50],
@@ -355,7 +367,7 @@ Format response as JSON:
             if opts:
                 body = f"Estimated ROAS: {roas}x\n\nOptimizations: {', '.join(opts[:3])}"
             else:
-                body = raw.lstrip("{").strip()
+                body = clean_text(raw.lstrip("{").strip())
 
             log_to_airtable("ad_campaign", {
                 "Campaign": "Growth Optimization",
@@ -407,7 +419,7 @@ Format response as JSON:
             )
             data = safe_parse(raw)
             title = data.get("title") or "New M&A Blog Post"
-            body = data.get("body") or data.get("content") or raw.lstrip("{").strip()
+            body = clean_text(data.get("body") or data.get("content") or raw.lstrip("{").strip())
 
             log_to_airtable("content", {
                 "Title": title,
@@ -462,7 +474,7 @@ Format response as JSON:
             if keywords:
                 body = f"Target Keywords: {', '.join(keywords[:3])}\n\nEstimated Traffic Increase: {traffic}"
             else:
-                body = raw.lstrip("{").strip()
+                body = clean_text(raw.lstrip("{").strip())
 
             log_to_airtable("seo_update", {
                 "Keywords": ", ".join(keywords[:5]),
@@ -516,7 +528,7 @@ Format response as JSON:
             if ideas:
                 body = f"Video Ideas: {', '.join(ideas[:2])}\n\nGrowth Projection: {growth}"
             else:
-                body = raw.lstrip("{").strip()
+                body = clean_text(raw.lstrip("{").strip())
 
             send_slack_notification(
                 SLACK_WEBHOOK_VIRAL,
