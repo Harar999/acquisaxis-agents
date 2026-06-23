@@ -109,6 +109,34 @@ SEO_TOPICS = [
     "acquisition entrepreneur software",
 ]
 
+LINKEDIN_ANGLES = [
+    "Open with a specific story or anecdote from a real deal situation, then draw the lesson.",
+    "Open with a contrarian or counterintuitive claim, then defend it with reasoning.",
+    "Lead with a concrete statistic or number, then unpack what it actually means for buyers.",
+    "Frame it as a common, expensive mistake and exactly how to avoid it.",
+    "Give a step-by-step framework the reader can apply to their next deal immediately.",
+    "Open with a sharp question that challenges an assumption most buyers hold.",
+    "Write it as a short 'lessons learned' reflection from the trenches.",
+]
+
+CONTENT_ANGLES = [
+    "practical how-to guide",
+    "myth-busting piece that corrects a common misconception",
+    "checklist-style article",
+    "case-study-style breakdown",
+    "contrarian opinion piece",
+]
+
+# Track last-used topics to avoid immediate repeats (per running container)
+_LAST_TOPIC = {"linkedin": None, "content": None}
+
+def pick_topic(key, topics):
+    """Pick a topic that isn't the same as the last one used for this key."""
+    choices = [t for t in topics if t != _LAST_TOPIC.get(key)] or topics
+    chosen = random.choice(choices)
+    _LAST_TOPIC[key] = chosen
+    return chosen
+
 TIKTOK_TOPICS = [
     "first-time business buyers and acquisition entrepreneurs",
     "people leaving corporate to buy a business",
@@ -301,13 +329,16 @@ Format your response as JSON:
     def create_daily_post():
         """Generate today's LinkedIn post"""
         try:
-            topic = random.choice(LINKEDIN_TOPICS)
+            topic = pick_topic("linkedin", LINKEDIN_TOPICS)
+            angle = random.choice(LINKEDIN_ANGLES)
             today = datetime.now().strftime("%B %d, %Y")
             raw = call_model_text(
                 LinkedInStrategist.get_system_prompt(),
-                f"Today is {today}. Write a fresh, original LinkedIn post about: {topic}. "
+                f"Today is {today}. Write a brand-new, original LinkedIn post about: {topic}. "
+                f"Structural approach for this post: {angle} "
                 f"Make it specific with a concrete insight or data point — not generic advice. "
-                f"Do not reuse openings you would typically default to; vary the hook."
+                f"Use a different opening hook than a typical post; avoid formulaic intros. "
+                f"This must not resemble previous posts in structure or wording."
             )
             data = safe_parse(raw)
             post_text = clean_text(data.get("post_text") or raw.lstrip("{").strip())
@@ -411,11 +442,13 @@ Format response as JSON:
     def create_content():
         """Generate new content"""
         try:
-            topic = random.choice(CONTENT_TOPICS)
+            topic = pick_topic("content", CONTENT_TOPICS)
+            angle = random.choice(CONTENT_ANGLES)
             today = datetime.now().strftime("%B %d, %Y")
             raw = call_model_text(
                 ContentCreator.get_system_prompt(),
-                f"Today is {today}. Write a short blog post (max 300 words) titled '{topic}' for acquisition entrepreneurs and searchers. Keep the body concise and specific."
+                f"Today is {today}. Write a short blog post (max 300 words) titled '{topic}' for acquisition entrepreneurs and searchers. "
+                f"Write it as a {angle}. Keep the body concise and specific, and avoid repeating structures used in earlier posts."
             )
             data = safe_parse(raw)
             title = data.get("title") or "New M&A Blog Post"
